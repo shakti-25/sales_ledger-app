@@ -24,14 +24,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Sales records: all team members read; reps create and edit their own; admins edit anything.
+    // Sales records: all team members read and add; only admins edit or delete.
     match /records/{id} {
       allow read: if isAllowed();
       allow create: if isAllowed() && request.resource.data.submittedByEmail == myEmail();
-      allow update: if isAdmin() ||
-        (isAllowed() && resource.data.submittedByEmail == myEmail()
-          && request.resource.data.submittedByEmail == myEmail());
-      allow delete: if isAdmin() || (isAllowed() && resource.data.submittedByEmail == myEmail());
+      allow update, delete: if isAdmin();
     }
 
     // Running serial number for records.
