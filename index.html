@@ -116,6 +116,7 @@ textarea{resize:vertical}
 .searchbox input{padding-left:38px;min-height:42px}
 .iconbtn{position:relative;width:46px;min-height:42px;padding:0;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .iconbtn[aria-expanded="true"]{background:var(--neutral-bg);border-color:var(--c1)}
+.filters.wide{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:12px 14px;align-items:end}
 .badge{position:absolute;top:-6px;right:-6px;min-width:19px;height:19px;border-radius:99px;background:var(--c4);color:#fff;font-size:11.5px;font-weight:600;display:grid;place-items:center;padding:0 5px}
 
 /* table */
@@ -278,13 +279,26 @@ datalist{display:none}
           <span id="fBadge" class="badge" hidden>0</span>
         </button>
       </div>
-      <div class="filters" id="fPanel" hidden>
+      <div class="filters wide" id="fPanel" hidden>
+        <div class="field"><label for="rno">No.</label><input id="rno" placeholder="e.g. 003" autocomplete="off"></div>
         <div class="field"><label for="rrep">Salesperson</label><select id="rrep"><option value="">Everyone</option></select></div>
-        <div class="field"><label for="rfrom">From</label><input id="rfrom" type="date"></div>
-        <div class="field"><label for="rto">To</label><input id="rto" type="date"></div>
-        <div class="field"><label for="rstatus">Schedule</label>
-          <select id="rstatus"><option value="">All</option><option value="done">Done</option><option value="pending">Pending</option></select></div>
-        <button id="rclear" class="ghost" type="button">Clear all</button>
+        <div class="field"><label for="rclient">Client</label><input id="rclient" placeholder="Client name" autocomplete="off"></div>
+        <div class="field"><label for="rfrom">Date from</label><input id="rfrom" type="date"></div>
+        <div class="field"><label for="rto">Date to</label><input id="rto" type="date"></div>
+        <div class="field"><label for="rtfrom">Time from</label><input id="rtfrom" type="time"></div>
+        <div class="field"><label for="rtto">Time to</label><input id="rtto" type="time"></div>
+        <div class="field"><label for="rcall">Call/meet</label><select id="rcall"><option value="">All</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+        <div class="field"><label for="rphys">Physical</label><select id="rphys"><option value="">All</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+        <div class="field"><label for="rfufrom">Follow-up from</label><input id="rfufrom" type="date"></div>
+        <div class="field"><label for="rfuto">Follow-up to</label><input id="rfuto" type="date"></div>
+        <div class="field"><label for="rstatus">Done</label><select id="rstatus"><option value="">All</option><option value="done">Done</option><option value="pending">Not done</option></select></div>
+        <div class="field"><label for="rlmin">Lumpsum min (₹)</label><input id="rlmin" type="number" min="0" inputmode="numeric"></div>
+        <div class="field"><label for="rlmax">Lumpsum max (₹)</label><input id="rlmax" type="number" min="0" inputmode="numeric"></div>
+        <div class="field"><label for="rsmin">SIP min (₹)</label><input id="rsmin" type="number" min="0" inputmode="numeric"></div>
+        <div class="field"><label for="rsmax">SIP max (₹)</label><input id="rsmax" type="number" min="0" inputmode="numeric"></div>
+        <div class="field"><label for="rloc">Location</label><input id="rloc" placeholder="Place name" autocomplete="off"></div>
+        <div class="field"><label for="rrem">Remarks</label><input id="rrem" placeholder="Words in remarks" autocomplete="off"></div>
+        <div class="field"><span class="lbl">&nbsp;</span><button id="rclear" class="ghost" type="button">Clear all</button></div>
       </div>
       <div class="meta"><span id="rcount" aria-live="polite"></span><button id="rCsv" class="btn" type="button" title="Downloads the records currently shown, with your filters applied">Export CSV</button></div>
       <div class="sheet">
@@ -392,7 +406,7 @@ let expanded = new Set();
 let unlockedUntil = 0;
 let localPinHash = null;
 const UNLOCK_MS = 5 * 60 * 1000;
-const rf = {q:'', rep:'', from:'', to:'', status:''};
+const rf = {q:'', rep:'', from:'', to:'', status:'', no:'', client:'', tfrom:'', tto:'', call:'', phys:'', fufrom:'', futo:'', lmin:'', lmax:'', smin:'', smax:'', loc:'', rem:''};
 const af = {rep:'', from:'', to:'', grain:'day'};
 const charts = {};
 
@@ -418,7 +432,7 @@ const configured = !!(FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey && !/^PASTE/i.te
 let auth = null, fdb = null;
 if (configured){ const app = initializeApp(FIREBASE_CONFIG); auth = getAuth(app); fdb = getFirestore(app); }
 let role = '', myEmail = '', unsubRecords = null;
-const canModify = r => role === 'admin' || (!!r.submittedByEmail && r.submittedByEmail === myEmail);
+const canModify = r => role === 'admin';
 const stripId = r => { const o = Object.assign({}, r); delete o.id; return o; };
 function failMsg(e){
   const c = e && e.code;
@@ -532,7 +546,7 @@ async function manageTeam(){
     '<td><span class="pill ' + (u.role === 'admin' ? 'yes' : 'no') + '">' + esc(u.role || 'rep') + '</span></td>' +
     '<td class="r">' + (u.email === myEmail ? '<span class="muted">you</span>' : '<button class="mini danger" data-rm="' + esc(u.email) + '">Remove</button>') + '</td></tr>').join('');
   openModal(
-    '<h2>Team access</h2><div class="muted">Only these Google accounts can sign in. Reps see all records and can edit their own. Admins can edit everything and manage this list.</div>' +
+    '<h2>Team access</h2><div class="muted">Only these Google accounts can sign in. Reps see all records and can add schedules. Only admins can edit or delete records and manage this list.</div>' +
     '<div style="overflow-x:auto;margin-top:12px"><table style="min-width:0"><tbody>' + rows + '</tbody></table></div>' +
     '<div class="grid" style="margin-top:16px">' +
       '<div class="field"><label for="tmEmail">Google email</label><input id="tmEmail" type="email" placeholder="name@gmail.com" autocomplete="off"></div>' +
@@ -758,9 +772,19 @@ function refreshReps(){
 /* ---------- filters ---------- */
 function filterRecs(list, f){
   const q = (f.q || '').toLowerCase();
+  const has = (t, v) => !v || String(t || '').toLowerCase().includes(String(v).trim().toLowerCase());
+  const yn2 = (val, want) => !want || (want === 'yes' ? !!val : !val);
+  const set = v => v !== undefined && v !== null && v !== '';
   return list.filter(r =>
     (!f.rep || r.salesperson === f.rep) && (!f.from || r.date >= f.from) && (!f.to || r.date <= f.to) &&
     (!f.status || (f.status === 'done' ? r.scheduleDone : !r.scheduleDone)) &&
+    (!f.no || serialStr(r.serial).includes(String(f.no).trim()) || String(r.serial) === String(f.no).trim()) &&
+    has(r.client, f.client) && has(r.location, f.loc) && has(r.remarks, f.rem) &&
+    (!f.tfrom || (r.time || '') >= f.tfrom) && (!f.tto || (r.time || '') <= f.tto) &&
+    yn2(r.callMeet, f.call) && yn2(r.physical, f.phys) &&
+    (!f.fufrom || (r.followUp && r.followUp >= f.fufrom)) && (!f.futo || (r.followUp && r.followUp <= f.futo)) &&
+    (!set(f.lmin) || (r.lumpsum || 0) >= Number(f.lmin)) && (!set(f.lmax) || (r.lumpsum || 0) <= Number(f.lmax)) &&
+    (!set(f.smin) || (r.sip || 0) >= Number(f.smin)) && (!set(f.smax) || (r.sip || 0) <= Number(f.smax)) &&
     (!q || [r.client, r.location, r.remarks, r.salesperson].join(' ').toLowerCase().includes(q)));
 }
 const sortRecs = list => list.slice().sort((a, b) => (b.date + (b.time||'')).localeCompare(a.date + (a.time||'')) || (b.serial||0) - (a.serial||0));
@@ -798,12 +822,12 @@ function rowHTML(r){
 }
 function renderRecords(){
   const body = $('#rbody'), foot = $('#rfoot');
-  $('#mSamples').hidden = !records.some(r => r.isSample);
+  $('#mSamples').hidden = role !== 'admin' || !records.some(r => r.isSample);
   if (!loaded){ body.innerHTML = '<tr><td colspan="14" class="empty">Loading records…</td></tr>'; foot.innerHTML = ''; $('#rcount').textContent = ''; return; }
   const list = sortRecs(filterRecs(records, rf));
   $('#rcount').textContent = 'Showing ' + list.length + ' of ' + records.length + ' records';
   $('#rCsv').textContent = 'Export CSV (' + list.length + ')';
-  const nAct = ['rep','from','to','status'].filter(k => rf[k]).length;
+  const nAct = Object.keys(rf).filter(k => k !== 'q' && rf[k] !== '').length;
   $('#fBadge').textContent = nAct; $('#fBadge').hidden = !nAct;
   if (!records.length){
     body.innerHTML = '<tr><td colspan="14"><div class="empty"><h3>No records yet</h3>Add a schedule from the New schedule page, or load five sample records to try the filters, PIN editing and charts.<br><br><button class="btn" type="button" data-act="seed">Load sample records</button></div></td></tr>';
@@ -855,11 +879,10 @@ function openEdit(r){
     try { await putRec(r.id, rec); closeModal(true); toast('Record updated'); } catch(e){ toast(failMsg(e)); }
   };
 }
-['rq','rrep','rfrom','rto','rstatus'].forEach(id => {
-  const key = {rq:'q', rrep:'rep', rfrom:'from', rto:'to', rstatus:'status'}[id];
-  $('#' + id).addEventListener(id === 'rq' ? 'input' : 'change', e => { rf[key] = e.target.value; renderRecords(); });
-});
-$('#rclear').onclick = () => { Object.assign(rf, {q:'', rep:'', from:'', to:'', status:''}); ['rq','rrep','rfrom','rto','rstatus'].forEach(i => $('#' + i).value = ''); renderRecords(); };
+const RMAP = {rq:'q', rrep:'rep', rfrom:'from', rto:'to', rstatus:'status', rno:'no', rclient:'client', rtfrom:'tfrom', rtto:'tto', rcall:'call', rphys:'phys', rfufrom:'fufrom', rfuto:'futo', rlmin:'lmin', rlmax:'lmax', rsmin:'smin', rsmax:'smax', rloc:'loc', rrem:'rem'};
+const TEXTY = new Set(['rq','rno','rclient','rloc','rrem','rlmin','rlmax','rsmin','rsmax']);
+Object.keys(RMAP).forEach(id => $('#' + id).addEventListener(TEXTY.has(id) ? 'input' : 'change', e => { rf[RMAP[id]] = e.target.value; renderRecords(); }));
+$('#rclear').onclick = () => { Object.keys(RMAP).forEach(id => { rf[RMAP[id]] = ''; $('#' + id).value = ''; }); renderRecords(); };
 
 $('#fToggle').onclick = () => {
   const p = $('#fPanel'); p.hidden = !p.hidden;
@@ -1014,7 +1037,7 @@ function renderAll(){
   if (tab === 'records') renderRecords();
   if (tab === 'analysis'){ if (Date.now() < unlockedUntil) renderAnalysis(); }
   if (tab === 'new') $('#newNote').textContent = user ? 'Will be saved as ' + user : 'Sign in to submit';
-  if (tab !== 'records') $('#mSamples').hidden = !records.some(r => r.isSample);
+  if (tab !== 'records') $('#mSamples').hidden = role !== 'admin' || !records.some(r => r.isSample);
 }
 function showTab(t){
   tab = t;
