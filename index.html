@@ -562,8 +562,12 @@ async function manageTeam(){
     catch(e){ $('#tmErr').textContent = failMsg(e); }
   };
   $$('[data-rm]', $('#modal')).forEach(b => b.onclick = async () => {
-    try { await deleteDoc(doc(fdb, 'allowedUsers', b.dataset.rm)); manageTeam(); toast('Removed'); }
+    const who = b.dataset.rm;
+    const ok = await requirePin('Removing ' + who + ' needs your PIN.', true);
+    if (!ok){ manageTeam(); return; }
+    try { await deleteDoc(doc(fdb, 'allowedUsers', who)); toast('Removed ' + who); }
     catch(e){ toast(failMsg(e)); }
+    manageTeam();
   });
 }
 $('#mTeam').onclick = manageTeam;
@@ -580,8 +584,8 @@ async function currentPinHash(){
   return hashPin('1234');
 }
 async function setPinHash(h){ await setDoc(doc(fdb, 'settings', 'security'), {pinHash:h, updatedBy:user, updatedAt:new Date().toISOString()}); }
-function requirePin(why){
-  if (Date.now() < unlockedUntil) return Promise.resolve(true);
+function requirePin(why, force){
+  if (!force && Date.now() < unlockedUntil) return Promise.resolve(true);
   return new Promise(resolve => {
     openModal(`<h2>Enter PIN</h2><div class="muted">${esc(why)}</div>
       <div class="field" style="margin-top:14px"><label for="pinIn">PIN</label><input id="pinIn" type="password" inputmode="numeric" autocomplete="off" maxlength="12"></div>
@@ -908,6 +912,7 @@ const exportCsv = async () => {
   closeMenu();
   const list = sortRecs(filterRecs(records, rf));
   if (!list.length){ toast('Nothing to export'); return; }
+  if (!(await requirePin('Exporting records needs your PIN.', true))) return;
   const isFiltered = list.length !== records.length;
   const fname = 'sales-records-' + todayISO() + (isFiltered ? '-filtered' : '') + '.csv';
   const cols = ['No.','Salesperson','Client','Date','Time','Call/meet','Physical','Follow-up','Schedule done','Lumpsum','SIP','Location','Remarks','Submitted by','Submitted at (IST)'];
