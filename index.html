@@ -666,7 +666,7 @@ function formHTML(r, isNew){
     <div class="span2 autonote" style="margin-top:-6px">Fill Lumpsum or Monthly SIP. At least one amount is required.</div>
     <div class="field span2"><span class="lbl">Contact type<span class="req">Select at least one</span></span>
       <div class="checks">
-        <label><input type="checkbox" name="callMeet" ${r.callMeet?'checked':''}> Call or meeting held</label>
+        <label><input type="checkbox" name="callMeet" ${r.callMeet?'checked':''}> Call (phone or video)</label>
         <label><input type="checkbox" name="physical" ${r.physical?'checked':''}> Physical meeting</label>
       </div></div>
     <div class="field span2"><span class="lbl">Schedule status<span class="req">Required</span></span>
@@ -696,18 +696,13 @@ function validate(v, needGeo){
   if (!v.salesperson){ toast('Salesperson is required'); return false; }
   if (!v.client){ toast('Client name is required'); return false; }
   if (!v.date){ toast('Date is required'); return false; }
-  if (!v.callMeet && !v.physical){ toast('Select Call or meeting held, or Physical meeting'); return false; }
+  if (!v.callMeet && !v.physical){ toast('Select Call or Physical meeting (or both)'); return false; }
   if (!(v.lumpsum > 0) && !(v.sip > 0)){ toast('Fill Lumpsum or Monthly SIP (at least one)'); return false; }
   if (v.scheduleDone === null){ toast('Choose Schedule done or Not done'); return false; }
   if (!v.location){ toast('Location name is required'); return false; }
   if (needGeo && !v.mapsLink){ toast('Device location is required'); return false; }
   return true;
 }
-document.addEventListener('change', e => {
-  const t = e.target;
-  if (t.name === 'physical' && t.checked){ const root = t.closest('.formroot'); const c = root && $('[name="callMeet"]', root); if (c) c.checked = true; }
-  if (t.name === 'callMeet' && !t.checked){ const root = t.closest('.formroot'); const p = root && $('[name="physical"]', root); if (p) p.checked = false; }
-});
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act="detect"]'); if (!b) return;
   captureGeo(b.closest('.formroot'));
