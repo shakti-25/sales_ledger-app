@@ -446,9 +446,9 @@ function setConn(msg, cls){
   if (mode === 'db'){ el.textContent = 'Live, shared with your team'; el.className = 'conn live'; }
   else { el.textContent = 'Not connected'; el.className = 'conn'; }
 }
-function applyIdentity(name, email){
+function applyIdentity(name, email, adminName){
   me = {name, email, id:email}; myEmail = email;
-  user = email.split('@')[0].toLowerCase().replace(/\s+/g, '.');
+  user = (adminName || '').trim() || email.split('@')[0].toLowerCase().replace(/\s+/g, '.');
   const shown = name || user;
   $('#meName').textContent = shown;
   $('#meMail').textContent = email + (role === 'admin' ? ' · admin' : '');
@@ -526,7 +526,7 @@ if (!configured){
     }
     const d = snap.data();
     role = d.role === 'admin' ? 'admin' : 'rep';
-    applyIdentity(d.name || u.displayName || '', email);
+    applyIdentity(d.name || u.displayName || '', email, d.name);
     startRecords();
     if (location.hash) route();
   });
@@ -550,7 +550,7 @@ async function manageTeam(){
     '<div style="overflow-x:auto;margin-top:12px"><table style="min-width:0"><tbody>' + rows + '</tbody></table></div>' +
     '<div class="grid" style="margin-top:16px">' +
       '<div class="field"><label for="tmEmail">Google email</label><input id="tmEmail" type="email" placeholder="name@gmail.com" autocomplete="off"></div>' +
-      '<div class="field"><label for="tmName">Name</label><input id="tmName" placeholder="Full name" autocomplete="off"></div>' +
+      '<div class="field"><label for="tmName">Name (used as Salesperson)</label><input id="tmName" placeholder="Name shown on records" autocomplete="off"></div>' +
       '<div class="field"><label for="tmRole">Role</label><select id="tmRole"><option value="rep">Rep</option><option value="admin">Admin</option></select></div>' +
     '</div><div class="err" id="tmErr"></div>' +
     '<div class="btns"><button class="ghost" type="button" id="tmClose">Close</button><button class="btn" type="button" id="tmAdd">Add person</button></div>', {wide:true});
